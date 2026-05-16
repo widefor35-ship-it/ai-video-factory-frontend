@@ -134,21 +134,29 @@ export default function DashboardPage() {
     formData.append("format", format)
 
     try {
-      const response = await fetch("http://localhost:5000/upload", {
-        method: "POST",
-        body: formData,
-      })
+  const response = await fetch(
+    "https://ai-video-factory-backend-yrep.onrender.com/upload",
+    {
+      method: "POST",
+      body: formData,
+    }
+  )
 
-      const data = await response.json()
+  const data = await response.json()
 
-      if (!data.success) {
-        alert("Generation failed")
-        setLoading(false)
-        return
-      }
+  if (!data.success) {
+    alert("Generation failed")
+    setLoading(false)
+    return
+  }
 
-      const finalUrl = data.finalVideoUrl || "http://localhost:5000/download/final"
-      const zipUrl = data.zipUrl || "http://localhost:5000/download/zip"
+  const finalUrl =
+    data.finalVideoUrl ||
+    "https://ai-video-factory-backend-yrep.onrender.com/download/final"
+
+  const zipUrl =
+    data.zipUrl ||
+    "https://ai-video-factory-backend-yrep.onrender.com/download/zip"
 
       setLatestFinalUrl(finalUrl)
       setLatestZipUrl(zipUrl)
