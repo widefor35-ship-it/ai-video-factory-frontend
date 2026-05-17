@@ -66,7 +66,7 @@ export default function HomePage() {
           </h1>
 
           <p className="text-zinc-400 text-xl mt-6">
-            Upload 1000 images + 1000 texts and generate bulk AI videos automatically.
+            1000 görsel ve 1000 metin yükleyin, toplu yapay zeka videolarını otomatik oluşturun.
           </p>
 
           <div className="flex justify-center gap-4 mt-10">
@@ -75,7 +75,7 @@ export default function HomePage() {
               href="/auth"
               className="bg-purple-600 hover:bg-purple-500 px-8 py-4 rounded-2xl font-black"
             >
-              Start Now
+              ŞİMDİ ÜYE OL
             </a>
 
             <a
@@ -154,7 +154,7 @@ export default function HomePage() {
           <div className="mt-6 bg-black/50 border border-white/10 rounded-2xl p-4">
 
             <h3 className="text-lg font-black mb-3">
-              Payment Info
+              ÖDEME YÖNTEMİ
             </h3>
 
             <p className="text-zinc-400 text-xs">
