@@ -16,7 +16,9 @@ export default function DashboardPage() {
   const [latestFinalUrl, setLatestFinalUrl] = useState("")
   const [latestZipUrl, setLatestZipUrl] = useState("")
 
-  const [imagePrompt, setImagePrompt] = useState("")
+  const [sceneText, setSceneText] = useState("")
+  const [characterText, setCharacterText] = useState("")
+  const [styleText, setStyleText] = useState("cinematic realistic, high detail, dramatic lighting")
   const [generatedImage, setGeneratedImage] = useState("")
   const [imageLoading, setImageLoading] = useState(false)
 
@@ -91,31 +93,21 @@ export default function DashboardPage() {
   }
 
   const loadMyVideos = async (userId: string) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("videos")
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
 
-    if (error) {
-      console.log("Video geçmişi hatası:", error)
-      return
-    }
-
     if (data) setMyVideos(data)
   }
 
   const loadMyImages = async (userId: string) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("generated_images")
       .select("*")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-
-    if (error) {
-      console.log("Görsel geçmişi hatası:", error)
-      return
-    }
 
     if (data) setMyImages(data)
   }
@@ -191,7 +183,7 @@ export default function DashboardPage() {
         })
         .eq("id", userData.id)
 
-      const { error: videoInsertError } = await supabase.from("videos").insert({
+      await supabase.from("videos").insert({
         user_id: userData.id,
         email: userData.email,
         title: "Bulk Video Export",
@@ -199,11 +191,6 @@ export default function DashboardPage() {
         zip_url: zipUrl,
         format,
       })
-
-      if (videoInsertError) {
-        console.log("Video kayıt hatası:", videoInsertError)
-        alert("Video üretildi ama geçmişe kaydedilemedi.")
-      }
 
       setUserData({
         ...userData,
@@ -224,8 +211,8 @@ export default function DashboardPage() {
   const generateImage = async () => {
     if (!userData) return
 
-    if (!imagePrompt.trim()) {
-      alert("Prompt required")
+    if (!sceneText.trim()) {
+      alert("Scene text required")
       return
     }
 
@@ -234,26 +221,30 @@ export default function DashboardPage() {
     try {
       const seed = Math.floor(Math.random() * 999999)
 
+      const finalPrompt = `
+Create a clean visual image from this scene.
+Scene: ${sceneText}
+Main character / object: ${characterText || "no specific character"}
+Style: ${styleText}
+Do not include text, subtitles, logos, watermark, voiceover text, speech bubbles, letters, or captions in the image.
+Make it cinematic, clear, high quality, visually consistent.
+`
+
       const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-        imagePrompt
+        finalPrompt
       )}?width=1024&height=1024&seed=${seed}&nologo=true`
 
       setGeneratedImage(imageUrl)
 
-      const { error } = await supabase.from("generated_images").insert({
+      await supabase.from("generated_images").insert({
         user_id: userData.id,
         email: userData.email,
-        prompt: imagePrompt,
+        prompt: finalPrompt,
         image_url: imageUrl,
         width: 1024,
         height: 1024,
         seed,
       })
-
-      if (error) {
-        console.log("Görsel kayıt hatası:", error)
-        alert("Görsel üretildi ama geçmişe kaydedilemedi.")
-      }
 
       await loadMyImages(userData.id)
     } catch (err) {
@@ -285,7 +276,6 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-black">AI Video Factory</h1>
-
             <p className="text-zinc-400 mt-2 text-sm">{userData.email}</p>
           </div>
 
@@ -303,7 +293,6 @@ export default function DashboardPage() {
         <div className="grid md:grid-cols-3 gap-4 mb-8">
           <div className="bg-white/5 border border-white/10 rounded-3xl p-5">
             <p className="text-zinc-400 text-sm">Current Plan</p>
-
             <h2 className="text-2xl font-black mt-2 uppercase">
               {userData.plan}
             </h2>
@@ -311,7 +300,6 @@ export default function DashboardPage() {
 
           <div className="bg-white/5 border border-white/10 rounded-3xl p-5">
             <p className="text-zinc-400 text-sm">Daily Usage</p>
-
             <h2 className="text-2xl font-black mt-2">
               {userData.plan === "gold"
                 ? "Unlimited"
@@ -321,7 +309,6 @@ export default function DashboardPage() {
 
           <div className="bg-white/5 border border-white/10 rounded-3xl p-5">
             <p className="text-zinc-400 text-sm">Days Left</p>
-
             <h2 className="text-2xl font-black mt-2">{daysLeft}</h2>
           </div>
         </div>
@@ -351,7 +338,6 @@ export default function DashboardPage() {
             <label className="flex items-center justify-center w-full h-28 border-2 border-dashed border-purple-500 rounded-3xl cursor-pointer hover:bg-purple-500/10 transition text-center px-4">
               <div>
                 <p className="text-lg font-black mb-1">Upload TXT</p>
-
                 <p className="text-zinc-400 text-xs">Click here</p>
 
                 {txtFile && (
@@ -380,7 +366,6 @@ export default function DashboardPage() {
             <label className="flex items-center justify-center w-full h-32 border-2 border-dashed border-blue-500 rounded-3xl cursor-pointer hover:bg-blue-500/10 transition text-center px-4">
               <div>
                 <p className="text-lg font-black mb-1">Upload Images</p>
-
                 <p className="text-zinc-400 text-xs">
                   Multiple images supported
                 </p>
@@ -440,21 +425,54 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-white/5 border border-white/10 rounded-3xl p-7 mb-8">
-          <h2 className="text-2xl font-black mb-5">AI Image Generator</h2>
+          <h2 className="text-2xl font-black mb-5">
+            AI Image Generator
+          </h2>
 
-          <textarea
-            value={imagePrompt}
-            onChange={(e) => setImagePrompt(e.target.value)}
-            placeholder="Write your image prompt..."
-            className="w-full bg-black border border-white/10 rounded-3xl p-5 min-h-[140px] outline-none mb-5"
-          />
+          <div className="mb-5">
+            <p className="text-zinc-400 text-sm mb-2">
+              Scene Text
+            </p>
+
+            <textarea
+              value={sceneText}
+              onChange={(e) => setSceneText(e.target.value)}
+              placeholder="Example: A lonely man walking through a dark city street at night..."
+              className="w-full bg-black border border-white/10 rounded-3xl p-5 min-h-[120px] outline-none"
+            />
+          </div>
+
+          <div className="mb-5">
+            <p className="text-zinc-400 text-sm mb-2">
+              Character / Object Description
+            </p>
+
+            <textarea
+              value={characterText}
+              onChange={(e) => setCharacterText(e.target.value)}
+              placeholder="Example: same young man, black jacket, serious face, short dark hair..."
+              className="w-full bg-black border border-white/10 rounded-3xl p-5 min-h-[90px] outline-none"
+            />
+          </div>
+
+          <div className="mb-5">
+            <p className="text-zinc-400 text-sm mb-2">
+              Visual Style
+            </p>
+
+            <input
+              value={styleText}
+              onChange={(e) => setStyleText(e.target.value)}
+              className="w-full bg-black border border-white/10 rounded-3xl p-5 outline-none"
+            />
+          </div>
 
           <button
             onClick={generateImage}
             disabled={imageLoading}
             className="w-full bg-pink-600 hover:bg-pink-500 transition py-4 rounded-3xl text-lg font-black"
           >
-            {imageLoading ? "Generating..." : "Generate AI Image"}
+            {imageLoading ? "Generating..." : "Generate Reference Image"}
           </button>
 
           {generatedImage && (
@@ -470,7 +488,7 @@ export default function DashboardPage() {
                 target="_blank"
                 className="mt-4 inline-block bg-green-600 hover:bg-green-500 px-5 py-3 rounded-2xl font-black text-sm"
               >
-                Download Image
+                Open / Download Image
               </a>
             </div>
           )}
@@ -491,7 +509,9 @@ export default function DashboardPage() {
                       className="w-full rounded-2xl mb-4"
                     />
 
-                    <p className="text-sm text-zinc-300 mb-3">{img.prompt}</p>
+                    <p className="text-sm text-zinc-300 mb-3">
+                      {img.prompt}
+                    </p>
 
                     <a
                       href={img.image_url}
