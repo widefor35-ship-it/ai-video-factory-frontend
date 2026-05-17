@@ -6,7 +6,6 @@ import { supabase } from "@/lib/supabase"
 export default function DashboardPage() {
   const [userData, setUserData] = useState<any>(null)
   const [myVideos, setMyVideos] = useState<any[]>([])
-  const [myImages, setMyImages] = useState<any[]>([])
 
   const [txtFile, setTxtFile] = useState<File | null>(null)
   const [images, setImages] = useState<FileList | null>(null)
@@ -16,13 +15,10 @@ export default function DashboardPage() {
   const [latestFinalUrl, setLatestFinalUrl] = useState("")
   const [latestZipUrl, setLatestZipUrl] = useState("")
 
-  const [sceneText, setSceneText] = useState("")
   const [characterText, setCharacterText] = useState("")
   const [styleText, setStyleText] = useState(
     "cinematic realistic, high detail, dramatic lighting"
   )
-  const [generatedImage, setGeneratedImage] = useState("")
-  const [imageLoading, setImageLoading] = useState(false)
 
   const [storyText, setStoryText] = useState("")
   const [sceneCount, setSceneCount] = useState(5)
@@ -96,7 +92,6 @@ export default function DashboardPage() {
 
     setUserData(data)
     loadMyVideos(data.id)
-    loadMyImages(data.id)
   }
 
   const loadMyVideos = async (userId: string) => {
@@ -107,16 +102,6 @@ export default function DashboardPage() {
       .order("created_at", { ascending: false })
 
     if (data) setMyVideos(data)
-  }
-
-  const loadMyImages = async (userId: string) => {
-    const { data } = await supabase
-      .from("generated_images")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-
-    if (data) setMyImages(data)
   }
 
   const generateVideo = async () => {
@@ -213,53 +198,6 @@ export default function DashboardPage() {
     }
 
     setLoading(false)
-  }
-
-  const generateImage = async () => {
-    if (!userData) return
-
-    if (!sceneText.trim()) {
-      alert("Scene text required")
-      return
-    }
-
-    setImageLoading(true)
-
-    try {
-      const seed = Math.floor(Math.random() * 999999)
-
-      const finalPrompt = `
-Create a clean visual image from this scene.
-Scene: ${sceneText}
-Main character / object: ${characterText || "no specific character"}
-Style: ${styleText}
-Do not include text, subtitles, logos, watermark, voiceover text, speech bubbles, letters, or captions in the image.
-Make it cinematic, clear, high quality, visually consistent.
-`
-
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
-        finalPrompt
-      )}?width=1024&height=1024&seed=${seed}&nologo=true`
-
-      setGeneratedImage(imageUrl)
-
-      await supabase.from("generated_images").insert({
-        user_id: userData.id,
-        email: userData.email,
-        prompt: finalPrompt,
-        image_url: imageUrl,
-        width: 1024,
-        height: 1024,
-        seed,
-      })
-
-      await loadMyImages(userData.id)
-    } catch (err) {
-      console.log(err)
-      alert("Image generation failed")
-    }
-
-    setImageLoading(false)
   }
 
   const generatePipeline = async () => {
@@ -482,19 +420,19 @@ Cinematic shot, highly detailed, realistic lighting, no text, no subtitles.`
 
         <div className="bg-white/5 border border-white/10 rounded-3xl p-7 mb-8">
           <h2 className="text-2xl font-black mb-5">
-            AI Image Generator
+            AI Pipeline Generator
           </h2>
 
           <div className="mb-5">
             <p className="text-zinc-400 text-sm mb-2">
-              Scene Text
+              Full Story / Script
             </p>
 
             <textarea
-              value={sceneText}
-              onChange={(e) => setSceneText(e.target.value)}
-              placeholder="Example: A lonely man walking through a dark city street at night..."
-              className="w-full bg-black border border-white/10 rounded-3xl p-5 min-h-[120px] outline-none"
+              value={storyText}
+              onChange={(e) => setStoryText(e.target.value)}
+              placeholder="Write your full story or script..."
+              className="w-full bg-black border border-white/10 rounded-3xl p-5 min-h-[220px] outline-none"
             />
           </div>
 
@@ -520,84 +458,6 @@ Cinematic shot, highly detailed, realistic lighting, no text, no subtitles.`
               value={styleText}
               onChange={(e) => setStyleText(e.target.value)}
               className="w-full bg-black border border-white/10 rounded-3xl p-5 outline-none"
-            />
-          </div>
-
-          <button
-            onClick={generateImage}
-            disabled={imageLoading}
-            className="w-full bg-pink-600 hover:bg-pink-500 transition py-4 rounded-3xl text-lg font-black"
-          >
-            {imageLoading ? "Generating..." : "Generate Reference Image"}
-          </button>
-
-          {generatedImage && (
-            <div className="mt-8">
-              <img
-                src={generatedImage}
-                alt="Generated"
-                className="w-full rounded-3xl border border-white/10"
-              />
-
-              <a
-                href={generatedImage}
-                target="_blank"
-                className="mt-4 inline-block bg-green-600 hover:bg-green-500 px-5 py-3 rounded-2xl font-black text-sm"
-              >
-                Open / Download Image
-              </a>
-            </div>
-          )}
-
-          {myImages.length > 0 && (
-            <div className="mt-10">
-              <h3 className="text-xl font-black mb-4">My AI Images</h3>
-
-              <div className="grid md:grid-cols-2 gap-5">
-                {myImages.map((img) => (
-                  <div
-                    key={img.id}
-                    className="bg-black/40 border border-white/10 rounded-3xl p-4"
-                  >
-                    <img
-                      src={img.image_url}
-                      alt="AI"
-                      className="w-full rounded-2xl mb-4"
-                    />
-
-                    <p className="text-sm text-zinc-300 mb-3">
-                      {img.prompt}
-                    </p>
-
-                    <a
-                      href={img.image_url}
-                      target="_blank"
-                      className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-2xl text-sm font-black"
-                    >
-                      Open Image
-                    </a>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white/5 border border-white/10 rounded-3xl p-7 mb-8">
-          <h2 className="text-2xl font-black mb-5">
-            AI Pipeline Generator
-          </h2>
-
-          <div className="mb-5">
-            <p className="text-zinc-400 text-sm mb-2">
-              Full Story / Script
-            </p>
-
-            <textarea
-              value={storyText}
-              onChange={(e) => setStoryText(e.target.value)}
-              placeholder="Write your full story or script..."
-              className="w-full bg-black border border-white/10 rounded-3xl p-5 min-h-[220px] outline-none"
             />
           </div>
 
