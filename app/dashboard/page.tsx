@@ -23,7 +23,9 @@ export default function DashboardPage() {
   const [storyText, setStoryText] = useState("")
   const [sceneCount, setSceneCount] = useState(5)
   const [generatedScenes, setGeneratedScenes] = useState<string[]>([])
+  const [pipelineImages, setPipelineImages] = useState<any[]>([])
   const [pipelineLoading, setPipelineLoading] = useState(false)
+  const [sceneImageLoading, setSceneImageLoading] = useState(false)
 
   useEffect(() => {
     loadUser()
@@ -92,6 +94,7 @@ export default function DashboardPage() {
 
     setUserData(data)
     loadMyVideos(data.id)
+    loadPipelineImages(data.id)
   }
 
   const loadMyVideos = async (userId: string) => {
@@ -102,6 +105,16 @@ export default function DashboardPage() {
       .order("created_at", { ascending: false })
 
     if (data) setMyVideos(data)
+  }
+
+  const loadPipelineImages = async (userId: string) => {
+    const { data } = await supabase
+      .from("pipeline_images")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+
+    if (data) setPipelineImages(data)
   }
 
   const generateVideo = async () => {
@@ -247,6 +260,61 @@ Cinematic shot, highly detailed, realistic lighting, no text, no subtitles.`
     }
 
     setPipelineLoading(false)
+  }
+
+  const generateSceneImages = async () => {
+    if (!userData) return
+
+    if (generatedScenes.length === 0) {
+      alert("First generate AI pipeline scenes.")
+      return
+    }
+
+    setSceneImageLoading(true)
+
+    try {
+      const createdImages: any[] = []
+
+      for (let i = 0; i < generatedScenes.length; i++) {
+        const scene = generatedScenes[i]
+        const seed = Math.floor(Math.random() * 999999)
+
+        const finalPrompt = `
+Create a cinematic image for this scene.
+${scene}
+
+Important:
+No text, no subtitles, no captions, no letters, no logos, no watermark.
+Use a clean cinematic composition.
+Keep the same character and style consistent across all scenes.
+`
+
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(
+          finalPrompt
+        )}?width=1080&height=1920&seed=${seed}&nologo=true`
+
+        const newImage = {
+          user_id: userData.id,
+          email: userData.email,
+          scene_text: scene,
+          image_url: imageUrl,
+          seed,
+        }
+
+        createdImages.push(newImage)
+      }
+
+      await supabase.from("pipeline_images").insert(createdImages)
+
+      await loadPipelineImages(userData.id)
+
+      alert("Scene images generated 🚀")
+    } catch (err) {
+      console.log(err)
+      alert("Scene image generation failed")
+    }
+
+    setSceneImageLoading(false)
   }
 
   if (!userData) {
@@ -500,6 +568,51 @@ Cinematic shot, highly detailed, realistic lighting, no text, no subtitles.`
                   </pre>
                 </div>
               ))}
+
+              <button
+                onClick={generateSceneImages}
+                disabled={sceneImageLoading}
+                className="w-full bg-pink-600 hover:bg-pink-500 transition py-4 rounded-3xl text-lg font-black"
+              >
+                {sceneImageLoading
+                  ? "Generating Scene Images..."
+                  : "Generate Scene Images"}
+              </button>
+            </div>
+          )}
+
+          {pipelineImages.length > 0 && (
+            <div className="mt-10">
+              <h3 className="text-xl font-black mb-4">
+                Generated Scene Images
+              </h3>
+
+              <div className="grid md:grid-cols-2 gap-5">
+                {pipelineImages.map((img) => (
+                  <div
+                    key={img.id}
+                    className="bg-black/40 border border-white/10 rounded-3xl p-4"
+                  >
+                    <img
+                      src={img.image_url}
+                      alt="Scene"
+                      className="w-full rounded-2xl mb-4"
+                    />
+
+                    <p className="text-sm text-zinc-300 mb-4 line-clamp-4">
+                      {img.scene_text}
+                    </p>
+
+                    <a
+                      href={img.image_url}
+                      target="_blank"
+                      className="inline-block bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-2xl text-sm font-black"
+                    >
+                      Open Image
+                    </a>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
