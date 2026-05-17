@@ -62,7 +62,7 @@ export default function HomePage() {
         <div className="text-center max-w-4xl">
 
           <h1 className="text-6xl md:text-7xl font-black">
-            Bulk AI Video Generator
+            Otomatik Video Üretim Sistemi
           </h1>
 
           <p className="text-zinc-400 text-xl mt-6">
@@ -82,7 +82,7 @@ export default function HomePage() {
               href="/dashboard"
               className="bg-white/10 hover:bg-white/20 px-8 py-4 rounded-2xl font-black"
             >
-              Dashboard
+              ÜRETMEYE BAŞLA
             </a>
 
           </div>
@@ -95,13 +95,13 @@ export default function HomePage() {
       <div className="fixed right-0 top-1/2 -translate-y-1/2 z-50 group">
 
         <div className="bg-purple-600 px-3 py-8 rounded-l-2xl font-black cursor-pointer writing-vertical">
-          PLANS
+          ÜCRETLENDİRME
         </div>
 
         <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full group-hover:translate-x-0 transition duration-300 w-[360px] bg-zinc-950 border border-white/10 rounded-l-3xl p-5 shadow-2xl">
 
           <h2 className="text-2xl font-black mb-5">
-            Membership Plans
+            ÜYELİK ÜCRETLERİ
           </h2>
 
           <div className="space-y-4">
