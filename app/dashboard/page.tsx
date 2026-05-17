@@ -18,9 +18,16 @@ export default function DashboardPage() {
 
   const [sceneText, setSceneText] = useState("")
   const [characterText, setCharacterText] = useState("")
-  const [styleText, setStyleText] = useState("cinematic realistic, high detail, dramatic lighting")
+  const [styleText, setStyleText] = useState(
+    "cinematic realistic, high detail, dramatic lighting"
+  )
   const [generatedImage, setGeneratedImage] = useState("")
   const [imageLoading, setImageLoading] = useState(false)
+
+  const [storyText, setStoryText] = useState("")
+  const [sceneCount, setSceneCount] = useState(5)
+  const [generatedScenes, setGeneratedScenes] = useState<string[]>([])
+  const [pipelineLoading, setPipelineLoading] = useState(false)
 
   useEffect(() => {
     loadUser()
@@ -253,6 +260,55 @@ Make it cinematic, clear, high quality, visually consistent.
     }
 
     setImageLoading(false)
+  }
+
+  const generatePipeline = async () => {
+    if (!userData) return
+
+    if (!storyText.trim()) {
+      alert("Story required")
+      return
+    }
+
+    setPipelineLoading(true)
+
+    try {
+      const cleanText = storyText
+        .replace(/\n/g, " ")
+        .split(".")
+        .filter((s) => s.trim().length > 20)
+
+      const scenes = cleanText.slice(0, sceneCount).map((scene, index) => {
+        return `Scene ${index + 1}:
+${scene.trim()}
+
+Character:
+${characterText || "same main character"}
+
+Visual Style:
+${styleText}
+
+Cinematic shot, highly detailed, realistic lighting, no text, no subtitles.`
+      })
+
+      setGeneratedScenes(scenes)
+
+      await supabase.from("ai_pipelines").insert({
+        user_id: userData.id,
+        email: userData.email,
+        story_text: storyText,
+        character_description: characterText,
+        visual_style: styleText,
+        scenes,
+      })
+
+      alert("Pipeline generated 🚀")
+    } catch (err) {
+      console.log(err)
+      alert("Pipeline failed")
+    }
+
+    setPipelineLoading(false)
   }
 
   if (!userData) {
@@ -523,6 +579,67 @@ Make it cinematic, clear, high quality, visually consistent.
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-7 mb-8">
+          <h2 className="text-2xl font-black mb-5">
+            AI Pipeline Generator
+          </h2>
+
+          <div className="mb-5">
+            <p className="text-zinc-400 text-sm mb-2">
+              Full Story / Script
+            </p>
+
+            <textarea
+              value={storyText}
+              onChange={(e) => setStoryText(e.target.value)}
+              placeholder="Write your full story or script..."
+              className="w-full bg-black border border-white/10 rounded-3xl p-5 min-h-[220px] outline-none"
+            />
+          </div>
+
+          <div className="mb-5">
+            <p className="text-zinc-400 text-sm mb-2">
+              Scene Count
+            </p>
+
+            <input
+              type="number"
+              value={sceneCount}
+              onChange={(e) => setSceneCount(Number(e.target.value))}
+              className="w-full bg-black border border-white/10 rounded-3xl p-5 outline-none"
+            />
+          </div>
+
+          <button
+            onClick={generatePipeline}
+            disabled={pipelineLoading}
+            className="w-full bg-orange-600 hover:bg-orange-500 transition py-4 rounded-3xl text-lg font-black"
+          >
+            {pipelineLoading
+              ? "Generating Pipeline..."
+              : "Generate AI Pipeline"}
+          </button>
+
+          {generatedScenes.length > 0 && (
+            <div className="mt-8 space-y-5">
+              {generatedScenes.map((scene, index) => (
+                <div
+                  key={index}
+                  className="bg-black/40 border border-white/10 rounded-3xl p-5"
+                >
+                  <h3 className="font-black text-xl mb-3">
+                    Scene {index + 1}
+                  </h3>
+
+                  <pre className="whitespace-pre-wrap text-sm text-zinc-300">
+                    {scene}
+                  </pre>
+                </div>
+              ))}
             </div>
           )}
         </div>
